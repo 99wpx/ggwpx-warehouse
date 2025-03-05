@@ -257,52 +257,45 @@ RegisterNetEvent('ggwpx-warehouse:client:RemoveWarehouse', function(data)
     end
 end)
 
-
-
 local blips = {} 
 
+local function setupInteractions()
+    for warehouse, data in pairs(Config.Locations) do
+        local coords = data['coords']
+        exports.interact:AddInteraction({
+            coords = vec3(coords.x, coords.y, coords.z),
+            distance = 8.0,
+            interactDst = 2.5,
+            id = 'warehouse_'..warehouse,
+            name = data['label'],
+            options = {
+                {
+                    label = "Akses "..data['label'],
+                    action = function()
+                        TriggerEvent("ggwpx-warehouse:client:OpenMenu", warehouse)
+                    end,
+                },
+            }
+        })
+    end
+end
+
 CreateThread(function()
-    while true do
-        local InRange = false
-        local ped = PlayerPedId()
-        local pos = GetEntityCoords(ped)
-
+    setupInteractions()
+    
+    if Config.EnableBlips then
         for warehouse, data in pairs(Config.Locations) do
-            local coords = data['coords']
-            local dist = #(pos - vector3(coords.x, coords.y, coords.z))
-
-            if dist < 10 then
-                InRange = true
-                DrawMarker(2, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.2, 0.1, 255, 255, 255, 155, 0, 0, 0, 1, 0, 0, 0)
-
-                if dist < 2 then
-                    QBCore.Functions.DrawText3D(coords.x, coords.y, coords.z + 0.2, '[E] '..data['label'])
-                    if IsControlJustPressed(0, 38) then -- Tombol E
-                        TriggerEvent('ggwpx-warehouse:client:OpenMenu', warehouse)
-                    end
-                end
-            end
-
-            if Config.EnableBlips and data['blip'] then
-                if not blips[warehouse] then
-                    blips[warehouse] = AddBlipForCoord(coords.x, coords.y, coords.z)
-                    SetBlipSprite(blips[warehouse], 478) 
-                    SetBlipColour(blips[warehouse], 2)  
-                    SetBlipAsShortRange(blips[warehouse], true)
-                    BeginTextCommandSetBlipName("STRING")
-                    AddTextComponentString(data['label'])
-                    EndTextCommandSetBlipName(blips[warehouse])
-                end
-            elseif blips[warehouse] then
-                RemoveBlip(blips[warehouse])
-                blips[warehouse] = nil
+            if data['blip'] then
+                local blip = AddBlipForCoord(data['coords'].x, data['coords'].y, data['coords'].z)
+                SetBlipSprite(blip, 478)
+                SetBlipScale(blip, 0.8)
+                SetBlipColour(blip, 2)
+                SetBlipAsShortRange(blip, true)
+                BeginTextCommandSetBlipName("STRING")
+                AddTextComponentString(data['label'])
+                EndTextCommandSetBlipName(blip)
             end
         end
-
-        if not InRange then
-            Wait(2000)
-        end
-        Wait(5)
     end
 end)
 
